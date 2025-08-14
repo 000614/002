@@ -26,8 +26,6 @@
 - **测试与质量保障**
 - **部署与安全建议**
 - **常见问题（FAQ）**
-- **Roadmap**
-- **许可证**
 
 
 ## 功能特性
@@ -68,7 +66,7 @@ graph TD
 sequenceDiagram
     participant D as Device
     participant S as Server
-    D->>S: WS Connect /xiaozhi/v1/ (headers: device-id, client-id)
+    D->>S: WS Connect (headers: device-id, client-id)
     S-->>D: {type: "hello", version:1, session_id}
     D->>S: {type:"hello", ...}
     S-->>D: {type:"hello", audio_params:{opus,16k,1ch,60ms}}
@@ -89,10 +87,10 @@ rebuild-xz/
   config/              # TOML 配置与注册
   orchestrator/        # 会话编排（DeviceSession、Gateway、OTA）
   plugins/             # 压力传感器/电机/蜂鸣器等插件
-  models/              # 本地 ASR 模型（如 SenseVoiceSmall）
+  models/              # 本地 VAD 模型和 ASR 模型
   dual_server.py       # 一体化启动（WS+API + OTA）
   run_ota.py           # 独立 OTA 服务启动
-  ota_server.py        # 更详细的 OTA 实现（可选）
+  ota_server.py        # 模块话的 OTA 实现
   requirements.txt     # 依赖清单
   ...
 ```
@@ -162,7 +160,6 @@ python run_ota.py
 
 - 验证监听：
   - 打开浏览器访问 `http://<host>:8000/api/device` → 应返回 `{"device":"ok"}`
-  - 打开 `http://<host>:8002/xiaozhi/ota/` → 返回包含 WebSocket 地址的文本
 
 
 ## 配置说明（TOML）
@@ -175,7 +172,6 @@ python run_ota.py
 | modules | speech_recognizer | str | FunASR | ASR 实现名（支持本地/服务端） |
 | modules | language_model | str | AliLLM | LLM 实现名（OpenAI 兼容） |
 | modules | speech_synthesizer | str | EdgeTTS | TTS 实现名 |
-| modules | memory_engine | str | nomem | 记忆引擎实现 |
 | modules | intent_resolver | str | function_call | 意图解析实现 |
 | asr.FunASR | type | str | fun_local | `fun_local` 或 `fun_server` |
 | llm.AliLLM | api_key | str | - | 替换为你的密钥 |
@@ -194,7 +190,7 @@ python run_ota.py
 | type | 用途 | 关键字段 | 示例 |
 |---|---|---|---|
 | hello | 设备自报字段 | 任意附加字段 | `{ "type":"hello", "device":"SaaS-Molly" }` |
-| listen | 控制拾音/检测 | `state:start|stop|detect`, `mode:auto|manual`, 可选 `text` | `{ "type":"listen", "state":"detect", "text":"你好助手" }` |
+| listen | 控制拾音/检测 | `state:start，stop，detect`, `mode:auto，manual` | `{ "type":"listen", "state":"detect", "text":"你好助手" }` |
 | abort | 中断当前流程 | - | `{ "type":"abort" }` |
 | iot | 注入 IoT 描述符/状态 | `descriptors`, `states` | `{ "type":"iot", "states":[...] }` |
 | pressure_sensor | 压力传感器事件 | 自定义字段 | `{ "type":"pressure_sensor", ... }` |
@@ -205,12 +201,12 @@ python run_ota.py
 | type | 用途 | 示例 |
 |---|---|---|
 | stt | 识别文本 | `{ "type":"stt", "text":"嘿，你好呀", "session_id":"..." }` |
-| tts | 播放状态 | `{ "type":"tts", "state":"start|end", "tts_type":"edge|gpt_sovits_v2" }` |
+| tts | 播放状态 | `{ "type":"tts", "state":"start/end", "tts_type":"edge/gpt_sovits_v2" }` |
 | hello | 音频参数下发 | `{ "type":"hello", "audio_params":{...} }` |
 
 ### 二进制消息（上行）
 
-- 在 `listen.state=start` 后持续发送音频帧（设备实现可选 Opus/PCM）。
+- 在 `listen.state=start` 后持续发送音频帧。
 - 服务端在静默阈值或 `stop` 后触发识别与对话流程。
 
 ### 音频参数（服务端返回示例）
@@ -270,12 +266,9 @@ python run_ota.py
 {
   "server_time": { "timestamp": "1736500000000", "timezone_offset": "480" },
   "firmware": { "version": "1.0.0", "url": "http://<ip>/firmware/1.0.0.bin" },
-  "websocket": { "url": "ws://<ip>:8001/xiaozhi/v1/" }
+  "websocket": { "url": "ws://<ip>:8000/xiaozhi/v1/" }
 }
 ```
-
-- 兼容性说明：POST 中 WS 端口可能固定返回 8001（对齐旧设备固件）；GET 则使用当前配置的 `service_port`。
-
 
 ## 模块与插件说明
 
@@ -285,7 +278,6 @@ python run_ota.py
 | ASR | FunASR (local/server) | `adapters/asr_unit.py`、`adapters/fun_local.py`、`adapters/fun_server.py` |
 | LLM | Ali LLM (OpenAI 兼容) | `adapters/llm_unit.py` |
 | TTS | EdgeTTS / GPT-SoVITS v2 | `adapters/tts_unit.py`、`adapters/tts_edge.py`、`adapters/tts_gpt_sovits_v2.py` |
-| Memory | nomem | `adapters/memory_unit.py` |
 | Intent | function_call | `adapters/intent_unit.py` |
 | Plugins | 压力/蜂鸣/马达等 | `plugins/` 目录 |
 
@@ -340,16 +332,3 @@ pytest -q -k async
 - LLM 401/连接失败：检查 `llm.AliLLM.api_key`/`base_url`/`model_name`；确保可访问外网。
 - 设备连接被拒绝：未携带 `device-id` 或 `client-id`；或端口/路径不正确。
 - OTA 返回端口与主服务不一致：为兼容旧固件设计，可按需修改 `orchestrator/ota_handler.py`。
-
-
-## Roadmap
-
-- TLS 与鉴权（token）
-- 更细粒度的流式 TTS 分片推送
-- LLM/ASR/TTS 多引擎热插拔与选择策略
-- 指标监控与可观测性（Prometheus/OpenTelemetry）
-
-
-## 许可证
-
-当前仓库未附带许可证文件。若需开源或分发，请添加 `LICENSE` 并注明协议（如 MIT/Apache-2.0 等）。 
