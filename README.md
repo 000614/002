@@ -32,7 +32,7 @@
 
 - **语音全链路**（VAD → ASR → LLM → TTS）：
   - ASR: FunASR 本地/服务端双模式；
-  - LLM: 阿里灵积（OpenAI 兼容协议）；
+  - LLM: 阿里qwen-turbo（OpenAI 兼容协议）；
   - TTS: EdgeTTS 与 GPT-SoVITS v2 可选；
 - **实时会话管道**：设备文本/音频/IOT/传感器事件统一入口，后端异步并行推理与播放控制。
 - **OTA 支持**：提供设备发现/升级所需地址信息（可与主服务分离端口）。
