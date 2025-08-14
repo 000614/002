@@ -5,7 +5,7 @@
 [![AsyncIO](https://img.shields.io/badge/Async-asyncio-orange)](https://docs.python.org/3/library/asyncio.html)
 [![Status](https://img.shields.io/badge/Status-Active-brightgreen)](./)
 [![License](https://img.shields.io/badge/License-Custom-lightgrey)](./LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows%2FmacOS%2FLinux-9cf)](./)
+[![Platform](https://img.shields.io/badge/Platform-Windows)](./)
 
 面向智能玩具设备（SaaS-Molly / ESP 系列）的语音与对话服务器。提供 WebSocket 低延迟会话、ASR/LLM/TTS 语音对话流水线、意图解析、记忆系统、IoT 事件注入与 OTA 地址发现接口，一体化支持设备端快速接入与升级。
 
