@@ -53,7 +53,7 @@ graph TD
 
     subgraph HTTP
       R[REST /api/*]
-      O[OTA /xiaozhi/ota/]
+      O[OTA]
     end
 
     A -- HTTP --> O
@@ -181,7 +181,7 @@ python run_ota.py
 
 ## 设备接入协议（WebSocket）
 
-- URL：`ws://<host>:<service_port>/xiaozhi/v1/`
+- URL：`ws://<host>:<service_port>`
 - 握手要求：Header 或 Query 必须携带 `device-id` 与 `client-id`。
 - 服务端握手：连接后立即下发 `{type:"hello", version:1, transport:"websocket", session_id}`。
 
@@ -242,14 +242,9 @@ python run_ota.py
 
 ## OTA 接口
 
-- 路径：`/xiaozhi/ota/`
 - 端口：`ota_port=8002`（独立）；或由 `dual_server.py` 并行启动
-
-### GET /xiaozhi/ota/
 - 功能：健康检查，并返回基于配置 `service_port` 的 WebSocket 地址。
 - 响应：`text/plain`
-
-### POST /xiaozhi/ota/
 - 功能：设备上报后获取时间/固件信息与推荐的 WebSocket 地址。
 - Header：可含 `device-id`
 - 请求示例：
@@ -266,7 +261,7 @@ python run_ota.py
 {
   "server_time": { "timestamp": "1736500000000", "timezone_offset": "480" },
   "firmware": { "version": "1.0.0", "url": "http://<ip>/firmware/1.0.0.bin" },
-  "websocket": { "url": "ws://<ip>:8000/xiaozhi/v1/" }
+  "websocket": { "url": "ws://<ip>:8000" }
 }
 ```
 
