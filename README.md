@@ -1,117 +1,267 @@
-<h1 align="center">SaaS-Molly: 智能AI玩具服务端</h1>
+## SaaS-Molly 服务器端（Rebuild-XZ）
 
-<p align="center">
-  一个为SaaS-Molly智能AI玩具设备设计的后端服务，提供了完整的语音交互、功能插件和设备管理能力。
-</p>
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![aiohttp](https://img.shields.io/badge/aiohttp-3.8%2B-green)](https://docs.aiohttp.org/)
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen)](./)
 
-<p align="center">
-  <a href="#">English</a>
-  · <a href="#">常见问题</a>
-  · <a href="#">反馈问题</a>
-  · <a href="#">部署文档</a>
-  · <a href="#">更新日志</a>
-</p>
+SaaS-Molly 的服务端为 ESP/玩具设备提供 WebSocket 会话、语音管线（VAD/ASR/LLM/TTS）、意图解析、记忆、以及 OTA 接口。默认支持通过 `/xiaozhi/v1/` 建立 WebSocket 连接，通过 `/xiaozhi/ota/` 进行 OTA 初始化和地址发现，并提供若干简易 REST API 端点用于可用性探测与集成演示。
 
-<p align="center">
-  <a href="#">
-    <img alt="GitHub Release" src="https://img.shields.io/badge/release-v1.0.0-blue.svg?logo=github" />
-  </a>
-  <a href="#">
-    <img alt="GitHub Contributors" src="https://img.shields.io/badge/contributors-1-orange.svg?logo=github" />
-  </a>
-  <a href="#">
-    <img alt="Issues" src="https://img.shields.io/badge/issues-0-green.svg?color=0088ff" />
-  </a>
-  <a href="#">
-    <img alt="GitHub pull requests" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?color=0088ff" />
-  </a>
-  <a href="#">
-    <img alt="License" src="https://img.shields.io/badge/license-MIT-white.svg?labelColor=black" />
-  </a>
-  <a href="#">
-    <img alt="stars" src="https://img.shields.io/badge/stars-100-yellow.svg?color=ffcb47&labelColor=black" />
-  </a>
-</p>
 
----
+## 目录
 
-## 🚀 主要特性
+- **功能概览**
+- **系统架构**
+- **目录结构**
+- **环境要求与安装**
+- **配置说明**
+- **启动方式**
+- **设备接入与协议**
+- **REST API**
+- **OTA 接口**
+- **模块说明**
+- **常见问题**
+- **开发与贡献**
+- **许可证**
 
-*   **🤖 智能对话**: 集成先进的ASR、LLM和TTS技术，提供自然流畅的语音对话体验。
-*   **🧩 功能插件**: 支持通过插件扩展功能，例如播放音乐、查询天气、控制家电等。
-*   **🔧 模块化设计**: 项目采用高度模块化的架构，方便独立升级和维护各个功能组件。
-*   **🔄 OTA更新**: 支持通过云端对设备进行固件的远程升级（OTA）。
-*   **🔌 WebSocket通信**: 通过WebSocket实现服务端与设备之间的实时双向通信。
 
----
+## 功能概览
 
-## 警告 ⚠️
+- **语音管线**: 内置 VAD、ASR（FunASR 可本地/服务端两种模式）、LLM（Ali LLM 兼容 OpenAI 接口）、TTS（EdgeTTS/GPT-SoVITS v2）。
+- **会话编排**: `DeviceSessionHandler` 统一处理文本/音频/IOT/传感器事件，异步驱动 LLM 与 TTS，边处理边推流。
+- **设备管理**: 通过 WebSocket 维护设备会话，支持 `device-id`/`client-id` 鉴别以及 IoT 描述符/状态注入。
+- **OTA 支持**: 提供独立 OTA 发现接口，返回设备应连接的 WebSocket 地址与固件信息字段示例。
+- **插件扩展**: 压力传感器/马达/蜂鸣器等插件能力，可扩展回调与意图动作。
 
-1.  本项目功能未完善，且未通过网络安全测评，请勿在生产环境中使用。 如果您在公网环境中部署学习本项目，请务必做好必要的防护。
 
----
-
-## 部署文档
-
-### 📦 环境准备
-
-确保您的开发环境中已经安装了 Python 3.10+ 和 pip。
-
-1.  **克隆仓库**
-
-    ```bash
-    git clone https://github.com/your-username/SaaS-Molly.git
-    cd SaaS-Molly
-    ```
-
-2.  **安装依赖**
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-### ⚙️ 配置说明
-
-所有的配置信息都在 `config/settings.toml` 文件中。在启动服务之前，请根据您的实际情况修改此文件。
-
--   **服务端口**: `system.service_port` 和 `system.ota_port`
--   **模块选择**: `module_selection` 部分用于选择使用的VAD, ASR, LLM, TTS等模块。
--   **API密钥**: 如果您选择使用需要API密钥的模块（如AliLLM），请确保在相应的配置部分填写您的密钥。
-
-### ▶️ 启动服务
-
-您可以根据需要选择不同的启动方式：
-
-*   **统一服务模式 (推荐)**: 同时启动WebSocket、API和OTA服务。
-
-    ```bash
-    python dual_server.py
-    ```
-
-*   **分离服务模式**: 如果您希望将WebSocket/API服务和OTA服务分开部署，可以单独运行 `bootstrap.py`。
-
-    ```bash
-    python bootstrap.py
-    ```
-
-服务启动后，您将在控制台看到类似以下的输出：
+## 系统架构
 
 ```
-[系统] 🚀 Rebuild-XZ 全部服务已启动，等待设备和API请求...
-[系统] 🌐 WebSocket+API服务已在端口 8000 启动。
-[OTA服务] OTA接口已在端口 8002 启动。
+设备 <—WebSocket—> 服务端会话层(DeviceSessionHandler)
+                 ├─ VAD (adapters.vad_unit.VADUnit)
+                 ├─ ASR (adapters.asr_unit.AcousticDecoder)
+                 ├─ LLM (adapters.llm_unit.LanguageReasoner)
+                 ├─ TTS (adapters.tts_unit.TTSUnit)
+                 ├─ Memory (adapters.memory_unit.MemoryUnit)
+                 ├─ Intent (adapters.intent_unit.PurposeResolver)
+                 └─ Plugins (plugins.ExtensionHub + pressure/motor/buzzer)
+
+HTTP:
+- /api/*          基础探活与示例 API（见下文）
+- /xiaozhi/ota/   OTA 地址发现与返回
 ```
 
----
 
-## 🤝 贡献
+## 目录结构
 
-我们非常欢迎社区的贡献！如果您有任何好的想法或者发现了bug，请随时提交Pull Request或Issue。
+```
+rebuild-xz/
+  adapters/           # VAD/ASR/LLM/TTS/WS/OTA 适配器
+  api/                # REST API 路由
+  config/             # 配置与注册表
+  orchestrator/       # 会话编排、OTA 处理、网关等
+  plugins/            # 传感器与硬件插件
+  models/             # 本地模型目录（如 FunASR）
+  dual_server.py      # 同时启动 WebSocket + API + OTA 的主入口
+  run_ota.py          # 独立 OTA 服务启动脚本
+  ota_server.py       # OTA 服务实现（更详细版本）
+  requirements.txt    # Python 依赖
+  ...
+```
 
-## 🙏 鸣谢
 
-本项目的灵感和部分代码参考了 [xiaozhi-esp32-server](https://github.com/xinnan-tech/xiaozhi-esp32-server) 项目，在此表示感谢。
+## 环境要求与安装
 
-## 📄 License
+- **Python**: 3.9+（建议 3.10/3.11）
+- **依赖**: 见 `requirements.txt`
+- **音频工具**:
+  - `pydub` 依赖 FFmpeg，建议安装 FFmpeg（Windows 可安装官方包并将其 `bin` 目录加入 PATH）
 
-本项目采用 [MIT](LICENSE) 许可协议。
+安装步骤：
+
+```bash
+# 1) 创建虚拟环境（可选）
+python -m venv .venv
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+
+# 2) 安装依赖
+pip install -r requirements.txt
+```
+
+
+## 配置说明
+
+配置文件：`config/settings.toml`
+
+- `system.service_port`: 主服务端口（默认 8000），用于 WebSocket 与 REST API
+- `system.ota_port`: OTA 服务端口（默认 8002）
+- `modules.*`: 选择具体实现，如 `voice_activity_detector`, `speech_recognizer`, `language_model`, `speech_synthesizer`, `memory_engine`, `intent_resolver`
+- `asr.FunASR`: FunASR 的本地/服务器模式配置
+- `llm.AliLLM`: OpenAI 兼容配置（`base_url`、`model_name`、`api_key` 等）
+- `tts.EdgeTTS` 与 `tts.GPT_SOVITS_V2`: 语音合成引擎配置
+- `intent.function_call.plugins`: 内置示例插件列表
+- `wakeup_words`: 唤醒词列表
+
+请根据实际密钥与服务地址，修改 `llm.AliLLM.api_key` 等字段。
+
+
+## 启动方式
+
+- **一体化启动（推荐）**：同时启动 WebSocket+API 与 OTA 接口
+
+```bash
+python dual_server.py
+```
+
+默认：
+- WebSocket/REST API 监听 `0.0.0.0:${service_port}`（默认 8000）
+- OTA 监听 `0.0.0.0:${ota_port}`（默认 8002）
+
+- **仅启动 OTA 服务（独立）**：
+
+```bash
+python run_ota.py
+```
+
+
+## 设备接入与协议
+
+- **WebSocket 路径**: `ws://<server_host>:<service_port>/xiaozhi/v1/`
+- **握手 Header/Query**: 需包含 `device-id` 与 `client-id`，否则将被拒绝
+- **握手步骤**：
+  1. 连接建立后，服务端先下发简要 `hello`
+  2. 设备发送 `{"type":"hello", ...}`
+  3. 服务端返回完整 `hello`（含音频参数）并进入工作流
+
+- **音频参数（服务端返回示例）**：
+```json
+{
+  "type": "hello",
+  "version": 1,
+  "transport": "websocket",
+  "session_id": "<uuid>",
+  "audio_params": {
+    "format": "opus",
+    "sample_rate": 16000,
+    "channels": 1,
+    "frame_duration": 60
+  }
+}
+```
+
+- **文本消息类型（部分）**：
+  - `hello`: 设备端握手
+  - `listen`: 控制拾音与检测
+    - `{ "type":"listen", "state":"start|stop|detect", "mode":"auto|manual" }`
+  - `detect`: 直接触发固定欢迎语进入对话
+  - `abort`: 中断当前处理流程
+  - `iot`: 注入 IoT 设备描述符/状态
+  - `pressure_sensor`: 压力传感器事件
+  - `tts`: 直接请求 TTS
+
+- **二进制消息**：
+  - 当 `listen.state=start` 后，发送音频二进制帧（Opus/PCM，依你设备端实现），服务端自动积累并在静默或 stop 时触发识别 + 对话流程
+
+- **服务端常见下行消息**：
+  - `stt`: 语音转文本结果 `{ "type":"stt", "text":"...", "session_id":"..." }`
+  - `tts`: TTS 状态 `{ "type":"tts", "state":"start|end", "tts_type":"edge|gpt_sovits_v2" }`
+  - 设备可按需扩展处理 `llm` 中间态与分片 TTS 音频等（见 `orchestrator/device_session.py`）
+
+最小连接示例（伪代码）：
+```text
+GET ws://SERVER:8000/xiaozhi/v1/
+Headers:
+  device-id: demo-device-001
+  client-id: demo-client-001
+
+<- {"type":"hello","version":1,...}
+-> {"type":"hello","device":"SaaS-Molly"}
+<- {"type":"hello","audio_params":{...}}
+-> {"type":"listen","state":"detect","text":"你好助手"}
+<- {"type":"stt","text":"嘿，你好呀"}
+<- {"type":"tts","state":"start"}
+... 音频播放 ...
+<- {"type":"tts","state":"end"}
+```
+
+
+## REST API
+
+默认根路径与示例（文件：`api/routes.py`）：
+
+- `GET /api/device` → `{ "device": "ok" }`
+- `GET /api/agent` → `{ "agent": "ok" }`
+- `GET /api/models` → `{ "models": "ok" }`
+- `GET /api/ttsVoice` → `{ "ttsVoice": "ok" }`
+- `GET /api/admin` → `{ "admin": "ok" }`
+- `GET /api/user` → `{ "user": "ok" }`
+- `GET /api/dummy` → `{ "dummy": true }`
+
+这些接口主要用于可用性探测与调通演示，可按需扩展。
+
+
+## OTA 接口
+
+- **路径**：`/xiaozhi/ota/`
+- **端口**：默认 `ota_port=8002`（独立 OTA 服务）或由 `dual_server.py` 并行启动
+
+- `GET /xiaozhi/ota/`
+  - 作用：健康检查，返回设备应连接的 WebSocket 地址（基于 `system.service_port`）
+  - 响应：`text/plain`
+
+- `POST /xiaozhi/ota/`
+  - 作用：设备上报基础信息后，服务端返回时间/固件/目标 WebSocket 地址
+  - Header：可包含 `device-id`
+  - Body（示例）：
+```json
+{
+  "application": { "version": "1.0.0" }
+}
+```
+  - 响应（示例）：
+```json
+{
+  "server_time": { "timestamp": "1736500000000", "timezone_offset": "480" },
+  "firmware": { "version": "1.0.0", "url": "http://<ip>/firmware/1.0.0.bin" },
+  "websocket": { "url": "ws://<ip>:8001/xiaozhi/v1/" }
+}
+```
+  - 说明：POST 中 WebSocket 端口可能固定返回 `8001` 以兼容既有设备固件；GET 则使用配置的 `service_port`。可根据你的设备侧约定进行调整（见 `orchestrator/ota_handler.py`）。
+
+
+## 模块说明（节选）
+
+- `adapters.vad_unit.VADUnit`：语音活动检测
+- `adapters.asr_unit.AcousticDecoder`：FunASR 本地/服务端两种工作模式
+- `adapters.llm_unit.LanguageReasoner`：对接 Ali LLM（OpenAI 兼容）
+- `adapters.tts_unit.TTSUnit`：EdgeTTS 或 GPT-SoVITS v2 合成
+- `adapters.memory_unit.MemoryUnit`：简单记忆占位实现
+- `adapters.intent_unit.PurposeResolver`：意图路由与插件函数调用
+- `plugins.*`：`pressure_sensor`、`motor_control`、`buzzer_control` 等
+- `orchestrator/device_session.py`：设备会话全流程处理的核心
+
+
+## 常见问题
+
+- **无法播放 TTS/处理音频**：确认已安装 FFmpeg，并且其路径在系统 PATH 中；Windows 建议安装官方 FFmpeg 发行版。
+- **ASR（FunASR）本地模式无法加载模型**：检查 `config/settings.toml` 中 `asr.FunASR.model_dir` 是否存在，并确保有相应权重。
+- **LLM 无响应/报 401**：检查 `llm.AliLLM.api_key`、`base_url` 和 `model_name` 设置；网络需可访问对应域名。
+- **设备连接被拒绝**：WebSocket 握手必须携带 `device-id` 与 `client-id`（可放在 Header 或 Query）。
+- **OTA 返回端口与主服务端口不一致**：见上文说明，属于兼容性设计，可根据设备固件约定调整实现。
+
+
+## 开发与贡献
+
+- 建议启用虚拟环境并使用 `pytest` 运行示例测试（仓库内包含若干集成/单测样例，可参考命名为 `test_*.py` 的文件）。
+- 代码风格：遵循清晰命名、显式类型注解（如适用）、早返回与错误优先处理；避免深层嵌套。
+- 重要位置：
+  - WebSocket 会话入口：`dual_server.py` 与 `orchestrator/device_session.py`
+  - REST/OTA 路由：`api/routes.py`、`orchestrator/ota_handler.py`
+  - 模块装配：`dual_server.py.initialize_modules()` 与 `config/settings.toml`
+
+本项目结构清晰，适合根据你的设备协议进行裁剪与扩展：可在 `adapters/` 新增编解码/能力模块，或在 `plugins/` 扩展硬件与行为。
+
+
+## 许可证
+
+当前仓库未附带许可证文件。若需开源或分发，请补充 `LICENSE` 并在此处注明授权协议（例如 MIT、Apache-2.0 等）。 
